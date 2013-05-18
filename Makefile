@@ -44,8 +44,16 @@ else ifeq ($(platform), qnx)
    CXX = QCC -Vgcc_ntoarmv7le_cpp
    AR = QCC -Vgcc_ntoarmv7le
    GLES = 1
-   INCFLAGS = -Iinclude/qnx
+   INCFLAGS = -Iinclude/compat
    LIBS := -lz
+else ifeq ($(platform), sncps3)
+   TARGET := $(TARGET_NAME)_libretro_ps3.a
+   CC = $(CELL_SDK)/host-win32/sn/bin/ps3ppusnc.exe
+   CXX = $(CELL_SDK)/host-win32/sn/bin/ps3ppusnc.exe
+   AR = $(CELL_SDK)/host-win32/sn/bin/ps3snarl.exe
+   DEFINES := -D__CELLOS_LV2__
+	INCFLAGS = -Iinclude/miniz -Iinclude/compat
+	STATIC_LINKING = 1
 else
    CXX = g++
    TARGET := $(TARGET_NAME)_retro.dll
@@ -72,8 +80,14 @@ endif
 
 SOURCES := $(wildcard *.cpp) $(wildcard *.c)
 OBJECTS := $(SOURCES:.cpp=.o) $(MINIZ_OBJ:.c=.o)
+
+ifeq ($(platform), sncps3)
+CXXFLAGS += $(fpic)
+CFLAGS += $(fpic)
+else
 CXXFLAGS += -Wall $(fpic)
 CFLAGS += -Wall $(fpic)
+endif
 
 ifeq ($(GLES), 1)
    CXXFLAGS += -DGLES
@@ -90,7 +104,11 @@ endif
 all: $(TARGET)
 
 $(TARGET): $(OBJECTS)
+ifeq ($(STATIC_LINKING), 1)
+	$(AR) rcs $@ $(OBJECTS)
+else
 	$(CXX) $(fpic) $(SHARED) $(INCLUDES) -o $@ $(OBJECTS) $(LIBS) -lm
+endif
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
