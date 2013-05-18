@@ -35,7 +35,6 @@ else ifeq ($(platform), ios)
    GLES = 1
 	CXX = clang++ -arch armv7 -isysroot $(IOSSDK)
 	DEFINES := -DIOS
-	CFLAGS += $(DEFINES)
 	CXXFLAGS += $(DEFINES)
 else ifeq ($(platform), qnx)
    TARGET := $(TARGET_NAME)_libretro_qnx.so
@@ -64,14 +63,11 @@ else
 endif
 
 CXXFLAGS += $(INCFLAGS)
-CFLAGS += $(INCFLAGS)
 
 ifeq ($(DEBUG), 1)
    CXXFLAGS += -O0 -g
-   CFLAGS += -O0 -g
 else
    CXXFLAGS += -O3
-   CFLAGS += -O3
 endif
 
 ifeq ($(INCLUDE_MINIZ), 1)
@@ -83,15 +79,12 @@ OBJECTS := $(SOURCES:.cpp=.o) $(MINIZ_OBJ:.c=.o)
 
 ifeq ($(platform), sncps3)
 CXXFLAGS += $(fpic)
-CFLAGS += $(fpic)
 else
 CXXFLAGS += -Wall $(fpic)
-CFLAGS += -Wall $(fpic)
 endif
 
 ifeq ($(GLES), 1)
    CXXFLAGS += -DGLES
-   CFLAGS += -DGLES
 ifeq ($(platform), ios)
    LIBS += $(GL_LIB)
 else
@@ -112,9 +105,6 @@ endif
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
-
-%.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
 	rm -f $(OBJECTS) $(TARGET)
