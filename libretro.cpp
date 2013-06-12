@@ -26,13 +26,15 @@ static unsigned width = BASE_WIDTH;
 static unsigned height = BASE_HEIGHT;
 
 static struct retro_hw_render_callback hw_render;
+static bool discard_hack_enable;
 static string mesh_path;
 
 static vector<shared_ptr<Mesh> > meshes;
 static shared_ptr<Texture> blank;
 
 void retro_init(void)
-{}
+{
+}
 
 void retro_deinit(void)
 {}
@@ -111,6 +113,7 @@ void retro_set_environment(retro_environment_t cb)
 #else
          "Internal resolution; 320x240|360x480|480x272|512x384|512x512|640x240|640x448|640x480|720x576|800x600|960x720|1024x768|1280x720|1280x960|1600x1200|1920x1080|1920x1440|1920x1600" },
 #endif
+                  { "modelviewer_discard_hack", "Discard hack enable; disabled|enabled" },
       { NULL, NULL },
    };
 
@@ -197,22 +200,36 @@ static void handle_input()
       meshes[i]->set_model(model);
 }
 
+static void context_reset(void);
+
 static void update_variables()
 {
    retro_variable var;
+   
    var.key = "modelviewer_resolution";
    var.value = NULL;
 
-   if (!environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) || !var.value)
-      return;
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+   {
+      vector<string> list = String::split(var.value, "x");
+      if (list.size() == 2)
+      {
+         width = String::stoi(list[0]);
+         height = String::stoi(list[1]);
+         retro_stderr_print("Internal resolution: %u x %u\n", width, height);
+      }
+   }
 
-   vector<string> list = String::split(var.value, "x");
-   if (list.size() != 2)
-      return;
+   var.key = "modelviewer_discard_hack";
+   var.value = NULL;
 
-   width = String::stoi(list[0]);
-   height = String::stoi(list[1]);
-   retro_stderr_print("Internal resolution: %u x %u\n", width, height);
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var))
+   {
+      if (strcmp(var.value, "disabled") == 0)
+         discard_hack_enable = false;
+      else if (strcmp(var.value, "enabled") == 0)
+         discard_hack_enable = true;
+   }
 }
 
 void retro_run(void)
@@ -264,6 +281,48 @@ static void init_mesh(const string& path)
       "  vNormal = uModel * vec4(aNormal, 0.0);\n"
       "}";
 
+   static const string fragment_shader_avoid_discard_hack =
+      "#ifdef GL_ES\n"
+      "precision mediump float;\n"
+      "#endif\n"
+      "varying vec2 vTex;\n"
+      "varying vec4 vNormal;\n"
+      "varying vec4 vPos;\n"
+
+      "uniform sampler2D sDiffuse;\n"
+      "uniform sampler2D sAmbient;\n"
+
+      "uniform vec3 uLightDir;\n"
+      "uniform vec3 uLightAmbient;\n"
+      "uniform vec3 uMTLAmbient;\n"
+      "uniform float uMTLAlphaMod;\n"
+      "uniform vec3 uMTLDiffuse;\n"
+      "uniform vec3 uMTLSpecular;\n"
+      "uniform float uMTLSpecularPower;\n"
+
+      "void main() {\n"
+      "  vec4 colorDiffuseFull = texture2D(sDiffuse, vTex);\n"
+      "  vec4 colorAmbientFull = texture2D(sAmbient, vTex);\n"
+
+      "  if (colorDiffuseFull.a < 0.5)\n"
+      "     discard;\n"
+
+      "  vec3 colorDiffuse = mix(uMTLDiffuse, colorDiffuseFull.rgb, vec3(colorDiffuseFull.a));\n"
+      "  vec3 colorAmbient = mix(uMTLAmbient, colorAmbientFull.rgb, vec3(colorAmbientFull.a));\n"
+
+      "  vec3 normal = normalize(vNormal.xyz);\n"
+      "  float directivity = dot(uLightDir, -normal);\n"
+
+      "  vec3 diffuse = colorDiffuse * clamp(directivity, 0.0, 1.0);\n"
+      "  vec3 ambient = colorAmbient * uLightAmbient;\n"
+
+      "  vec3 modelToFace = normalize(-vPos.xyz);\n"
+      "  float specularity = pow(clamp(dot(modelToFace, reflect(uLightDir, normal)), 0.0, 1.0), uMTLSpecularPower);\n"
+      "  vec3 specular = uMTLSpecular * specularity;\n"
+
+      "  gl_FragColor = vec4(diffuse + ambient + specular, uMTLAlphaMod);\n"
+      "}";
+
    static const string fragment_shader =
       "#ifdef GL_ES\n"
       "precision mediump float;\n"
@@ -303,7 +362,7 @@ static void init_mesh(const string& path)
       "  gl_FragColor = vec4(diffuse + ambient + specular, uMTLAlphaMod * colorDiffuseFull.a);\n"
       "}";
 
-   shared_ptr<Shader> shader(new Shader(vertex_shader, fragment_shader));
+   shared_ptr<Shader> shader(new Shader(vertex_shader, (discard_hack_enable) ? fragment_shader_avoid_discard_hack : fragment_shader));
    meshes = OBJ::load_from_file(path);
 
    mat4 projection = scale(mat4(1.0), vec3(1, -1, 1)) * perspective(45.0f, 640.0f / 480.0f, 1.0f, 100.0f);
