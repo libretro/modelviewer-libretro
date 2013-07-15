@@ -24,7 +24,7 @@ else
    GL_LIB := -lGL
 endif
    LIBS := -lz
-ifneq (,$(findstring osx,$(platform)))
+else ifneq (,$(findstring osx,$(platform)))
    TARGET := $(TARGET_NAME)_libretro.dylib
    fpic := -fPIC
    SHARED := -dynamiclib
