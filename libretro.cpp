@@ -29,8 +29,8 @@ static struct retro_hw_render_callback hw_render;
 static bool discard_hack_enable;
 static string mesh_path;
 
-static vector<shared_ptr<Mesh> > meshes;
-static shared_ptr<Texture> blank;
+static vector<std1::shared_ptr<Mesh> > meshes;
+static std1::shared_ptr<Texture> blank;
 
 void retro_init(void)
 {
@@ -362,7 +362,7 @@ static void init_mesh(const string& path)
       "  gl_FragColor = vec4(diffuse + ambient + specular, uMTLAlphaMod * colorDiffuseFull.a);\n"
       "}";
 
-   shared_ptr<Shader> shader(new Shader(vertex_shader, (discard_hack_enable) ? fragment_shader_avoid_discard_hack : fragment_shader));
+   std1::shared_ptr<Shader> shader(new Shader(vertex_shader, (discard_hack_enable) ? fragment_shader_avoid_discard_hack : fragment_shader));
    meshes = OBJ::load_from_file(path);
 
    mat4 projection = scale(mat4(1.0), vec3(1, -1, 1)) * perspective(45.0f, 640.0f / 480.0f, 1.0f, 100.0f);
