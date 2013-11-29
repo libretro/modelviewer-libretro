@@ -37,7 +37,8 @@ else ifeq ($(platform), ios)
 	GL_LIB := -framework OpenGLES
 	LIBS += -lz
    GLES = 1
-	CXX = clang++ -arch armv7 -isysroot $(IOSSDK)
+	CXX = clang++ -arch armv7 -isysroot $(IOSSDK) -miphoneos-version-min=5.0
+	CXXFLAGS += -miphoneos-version-min=5.0
 	DEFINES := -DIOS
 	CXXFLAGS += $(DEFINES)
    INCFLAGS = -Iinclude/compat
