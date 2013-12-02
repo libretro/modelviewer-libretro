@@ -31,7 +31,8 @@ else ifneq (,$(findstring osx,$(platform)))
    GL_LIB := -framework OpenGL
    LIBS += -lz
    INCFLAGS = -Iinclude/compat
-	DEFINES := -DOSX
+   DEFINES := -DOSX
+   CXXFLAGS += $(DEFINES)
 else ifeq ($(platform), ios)
 	TARGET := $(TARGET_NAME)_libretro_ios.dylib
 	fpic := -fpic
