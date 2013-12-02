@@ -30,6 +30,8 @@ else ifneq (,$(findstring osx,$(platform)))
    SHARED := -dynamiclib
    GL_LIB := -framework OpenGL
    LIBS += -lz
+   INCFLAGS = -Iinclude/compat
+	DEFINES := -DOSX
 else ifeq ($(platform), ios)
 	TARGET := $(TARGET_NAME)_libretro_ios.dylib
 	fpic := -fpic
