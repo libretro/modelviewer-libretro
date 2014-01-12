@@ -1,4 +1,4 @@
-/* Copyright (C) 2010-2013 The RetroArch team
+/* Copyright (C) 2010-2014 The RetroArch team
  *
  * ---------------------------------------------------------------------------------------
  * The following license statement only applies to this libretro API header (libretro.h).
@@ -574,6 +574,15 @@ enum retro_mod
                                            // The purpose of this interface is to be able to retrieve location-based information from the host device, 
                                            // such as current latitude / longitude.
                                            //
+#define RETRO_ENVIRONMENT_GET_CONTENT_DIRECTORY 30
+                                           // const char ** --
+                                           // Returns the "content" directory of the frontend.
+                                           // This directory can be used to store specific assets that the core relies upon, such as art assets,
+                                           // input data, etc etc.
+                                           // The returned value can be NULL.
+                                           // If so, no such directory is defined,
+                                           // and it's up to the implementation to find a suitable directory.
+                                           //
 
 enum retro_log_level
 {
@@ -604,6 +613,7 @@ struct retro_log_callback
 #define RETRO_SIMD_NEON     (1 << 5)
 #define RETRO_SIMD_SSE3     (1 << 6)
 #define RETRO_SIMD_SSSE3    (1 << 7)
+#define RETRO_SIMD_MMX      (1 << 8)
 
 typedef uint64_t retro_perf_tick_t;
 typedef int64_t retro_time_t;
@@ -769,12 +779,19 @@ typedef void (*retro_location_stop_t)(void);
 typedef bool (*retro_location_get_position_t)(double *lat, double *lon, double *horiz_accuracy,
       double *vert_accuracy);
 
+// Callback which signals when the location driver is initialized and/or deinitialized.
+// retro_location_start_t can be called in initialized callback.
+typedef void (*retro_location_lifetime_status_t)(void);
+
 struct retro_location_callback
 {
    retro_location_start_t         start;
    retro_location_stop_t          stop;
    retro_location_get_position_t  get_position;
    retro_location_set_interval_t  set_interval; 
+
+   retro_location_lifetime_status_t initialized;
+   retro_location_lifetime_status_t deinitialized;
 };
 
 enum retro_rumble_effect
