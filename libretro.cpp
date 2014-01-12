@@ -85,39 +85,13 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
    info->geometry.max_height  = MAX_HEIGHT;
 }
 
+retro_log_printf_t log_cb;
 static retro_video_refresh_t video_cb;
 static retro_audio_sample_t audio_cb;
 static retro_audio_sample_batch_t audio_batch_cb;
 static retro_environment_t environ_cb;
 static retro_input_poll_t input_poll_cb;
 static retro_input_state_t input_state_cb;
-
-#ifdef ANDROID
-#include <android/log.h>
-#endif
-
-#include <stdarg.h>
-
-void retro_stderr(const char *str)
-{
-#if defined(_WIN32)
-   OutputDebugStringA(str);
-#elif defined(ANDROID)
-   __android_log_print(ANDROID_LOG_INFO, "ModelViewer: ", "%s", str);
-#else
-   fputs(str, stderr);
-#endif
-}
-
-void retro_stderr_print(const char *fmt, ...)
-{
-   char buf[1024];
-   va_list list;
-   va_start(list, fmt);
-   vsprintf(buf, fmt, list); // Unsafe, but vsnprintf isn't in C++03 :(
-   va_end(list);
-   retro_stderr(buf);
-}
 
 void retro_set_environment(retro_environment_t cb)
 {
@@ -162,7 +136,7 @@ void retro_set_video_refresh(retro_video_refresh_t cb)
    video_cb = cb;
 }
 
-static void handle_input()
+static void handle_input(void)
 {
    static float model_rotate_y;
    static float model_rotate_x;
@@ -233,7 +207,8 @@ static void update_variables()
       {
          width = String::stoi(list[0]);
          height = String::stoi(list[1]);
-         retro_stderr_print("Internal resolution: %u x %u\n", width, height);
+         if (log_cb)
+            log_cb(RETRO_LOG_INFO, "Internal resolution: %u x %u\n", width, height);
       }
    }
 
@@ -280,7 +255,8 @@ void retro_run(void)
 
 static void init_mesh(const string& path)
 {
-   retro_stderr("Loading Mesh ...\n");
+   if (log_cb)
+      log_cb(RETRO_LOG_INFO, "Loading Mesh ...\n");
 
    static const string vertex_shader =
       "uniform mat4 uModel;\n"
@@ -411,7 +387,8 @@ bool retro_load_game(const struct retro_game_info *info)
    enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_XRGB8888;
    if (!environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt))
    {
-      retro_stderr("XRGB8888 is not supported.");
+      if (log_cb)
+         log_cb(RETRO_LOG_ERROR, "XRGB8888 is not supported.");
       return false;
    }
 
