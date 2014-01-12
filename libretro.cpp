@@ -49,6 +49,14 @@ static string mesh_path;
 static vector<std1::shared_ptr<Mesh> > meshes;
 static std1::shared_ptr<Texture> blank;
 
+retro_log_printf_t log_cb;
+static retro_video_refresh_t video_cb;
+static retro_audio_sample_t audio_cb;
+static retro_audio_sample_batch_t audio_batch_cb;
+static retro_environment_t environ_cb;
+static retro_input_poll_t input_poll_cb;
+static retro_input_state_t input_state_cb;
+
 void retro_init(void)
 {
    struct retro_log_callback log;
@@ -91,13 +99,6 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
    info->geometry.max_height  = MAX_HEIGHT;
 }
 
-retro_log_printf_t log_cb;
-static retro_video_refresh_t video_cb;
-static retro_audio_sample_t audio_cb;
-static retro_audio_sample_batch_t audio_batch_cb;
-static retro_environment_t environ_cb;
-static retro_input_poll_t input_poll_cb;
-static retro_input_state_t input_state_cb;
 
 void retro_set_environment(retro_environment_t cb)
 {
